@@ -1,6 +1,6 @@
 # JHipster Operator
 
-![](/home/dsteiman/stuff/jhipster/jhipster-operator/jhipster-operator-logo.png)
+![](jhipster-operator-logo.png)
 
 This operator simplifies the way how user can deploy their JHipster applications
 to Kubernetes. It comes with a few CRDs and makes abstracts the deployment of different
@@ -8,7 +8,7 @@ components, such as Databases, Service Discovery / Config servers from the user
 
 ## Architecture
 
-![](/home/dsteiman/stuff/jhipster/jhipster-operator/architecture.png)
+![](architecture.png)
 
 The operator comes with two CRDS: `JHipsterSetup` and `JHipsterApplication`.
 The setup holds configuration which is common for all applications, while the application always refer to one certain
