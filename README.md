@@ -1,5 +1,27 @@
-# jhipster-operator
-// TODO(user): Add simple overview of use/purpose
+# JHipster Operator
+
+![](/home/dsteiman/stuff/jhipster/jhipster-operator/jhipster-operator-logo.png)
+
+This operator simplifies the way how user can deploy their JHipster applications
+to Kubernetes. It comes with a few CRDs and makes abstracts the deployment of different
+components, such as Databases, Service Discovery / Config servers from the user
+
+## Architecture
+
+![](/home/dsteiman/stuff/jhipster/jhipster-operator/architecture.png)
+
+The operator comes with two CRDS: `JHipsterSetup` and `JHipsterApplication`.
+The setup holds configuration which is common for all applications, while the application always refer to one certain
+JHipster application. These are the main ideas of this operator:
+
+1. bring down the YAML the user deploys to a minimum set of fields, targeting specific configuration of an application
+   1. removes requirement to deploy consul/eureka/databases
+   2. removes to know the exact environment variable name for options
+2. making stuff like database management more flexible by either taking control of DB deployment or giving it the user
+3. plug the setup to other options of JHister, such as monitoring, control center etc
+4. still allow to override all K8S native fields using the `overide` attributes
+
+
 
 ## Description
 // TODO(user): An in-depth paragraph about your project and overview of use
