@@ -38,10 +38,28 @@ spec:
           spec:
             description: JHipsterSetupSpec defines the desired state of JHipsterSetup
             properties:
-              foo:
-                description: Foo is an example field of JHipsterSetup. Edit jhipstersetup_types.go
-                  to remove/update
+              serviceDiscoveryType:
+                default: consul
+                description: sets the service discovery solution for
                 type: string
+              storageClassName:
+                description: the storage class name used for managed stuff
+                type: string
+              useDynamicStorage:
+                default: true
+                type: boolean
+              useIstio:
+                default: false
+                description: 'if true, the operator installs istio for this setup
+                  todo: implement istio. Currently it doesn''t work'
+                type: boolean
+              useMonitoring:
+                default: true
+                type: boolean
+            required:
+            - serviceDiscoveryType
+            - useDynamicStorage
+            - useMonitoring
             type: object
           status:
             description: JHipsterSetupStatus defines the observed state of JHipsterSetup

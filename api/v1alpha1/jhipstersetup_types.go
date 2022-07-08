@@ -22,14 +22,34 @@ import (
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+type ServiceDiscoveryType string
+
+const (
+	Consul ServiceDiscoveryType = "consul"
+	Eureka ServiceDiscoveryType = "eureka"
+	None   ServiceDiscoveryType = "none"
+)
 
 // JHipsterSetupSpec defines the desired state of JHipsterSetup
 type JHipsterSetupSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of JHipsterSetup. Edit jhipstersetup_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	//+kubebuilder:default:="consul"
+	// sets the service discovery solution for
+	ServiceDiscoveryType ServiceDiscoveryType `json:"serviceDiscoveryType"`
+	//+kubebuilder:default:=true
+	UseMonitoring bool `json:"useMonitoring"`
+	//+kubebuilder:default:=true
+	UseDynamicStorage bool `json:"useDynamicStorage"`
+
+	// the storage class name used for managed stuff
+	StorageClassName *string `json:"storageClassName,omitempty"`
+
+	//+kubebuilder:default:=false
+	// if true, the operator installs istio for this setup
+	// todo: implement istio. Currently it doesn't work
+	UseIstio bool `json:"useIstio,omitempty"`
 }
 
 // JHipsterSetupStatus defines the observed state of JHipsterSetup

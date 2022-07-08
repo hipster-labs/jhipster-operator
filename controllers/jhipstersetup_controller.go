@@ -18,6 +18,11 @@ package controllers
 
 import (
 	"context"
+	"github.com/hipster-labs/jhipster-operator/pkg"
+	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -47,9 +52,23 @@ type JHipsterSetupReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.12.1/pkg/reconcile
 func (r *JHipsterSetupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// TODO(user): your logic here
+	setup := &k8sv1alpha1.JHipsterSetup{}
+	err := r.Get(ctx, req.NamespacedName, setup)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+
+		return ctrl.Result{}, err
+	}
+
+	logger.Info("reconciling", "setup", setup)
+	if setup.Spec.ServiceDiscoveryType == k8sv1alpha1.Consul {
+		return r.ensureConsulResources(ctx, setup)
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -58,5 +77,90 @@ func (r *JHipsterSetupReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *JHipsterSetupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&k8sv1alpha1.JHipsterSetup{}).
+		Owns(&k8sv1alpha1.JHipsterApplication{}).
+		Owns(&appsv1.StatefulSet{}).
+		Owns(&v1.Secret{}).
+		Owns(&v1.Service{}).
 		Complete(r)
+}
+
+func (r *JHipsterSetupReconciler) ensureConsulResources(ctx context.Context, setup *k8sv1alpha1.JHipsterSetup) (ctrl.Result, error) {
+	// ensure the gossipKey
+	gossipKey := &v1.Secret{}
+	gossipKeyTpl := pkg.ConsulSecret(setup.Name, setup.Namespace)
+	err := r.Get(ctx, types.NamespacedName{
+		Namespace: gossipKeyTpl.Namespace,
+		Name:      gossipKeyTpl.Name,
+	}, gossipKey)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			ctrl.SetControllerReference(setup, gossipKeyTpl, r.Scheme)
+			err = r.Create(ctx, gossipKeyTpl)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{Requeue: true}, nil
+		}
+	}
+
+	// todo, reconcile if user changed
+
+	consulService := &v1.Service{}
+	consulServiceTpl := pkg.ConsulService(setup.Name, setup.Namespace)
+
+	err = r.Get(ctx, types.NamespacedName{
+		Namespace: consulServiceTpl.Namespace,
+		Name:      consulServiceTpl.Name,
+	}, consulService)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			ctrl.SetControllerReference(setup, consulServiceTpl, r.Scheme)
+			err = r.Create(ctx, consulServiceTpl)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{Requeue: true}, nil
+		}
+
+		return ctrl.Result{}, err
+	}
+
+	// todo, reconcile if user changed
+	consulSts := &appsv1.StatefulSet{}
+	var size int32 = 3
+	storageSize := "700M"
+	consulStsTpl, err := pkg.ConsulSts(setup.Name, setup.Namespace, size, storageSize, setup.Spec.StorageClassName)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.Get(ctx, types.NamespacedName{
+		Namespace: consulStsTpl.Namespace,
+		Name:      consulStsTpl.Name,
+	}, consulSts)
+
+	if err != nil {
+		if errors.IsNotFound(err) {
+			ctrl.SetControllerReference(setup, consulStsTpl, r.Scheme)
+			err = r.Create(ctx, consulStsTpl)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{Requeue: true}, nil
+		}
+
+		return ctrl.Result{}, err
+	}
+
+	// todo, reconcile if user changed
+
+	return ctrl.Result{}, nil
 }
