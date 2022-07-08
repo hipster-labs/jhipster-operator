@@ -1,0 +1,6 @@
+apiVersion: k8s.jhipster.tech/v1alpha1
+kind: JHipsterApplication
+metadata:
+  name: jhipsterapplication-sample
+spec:
+  # TODO(user): Add fields here

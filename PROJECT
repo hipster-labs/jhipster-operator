@@ -1,0 +1,28 @@
+domain: jhipster.tech
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: jhipster-operator
+repo: github.com/hipster-labs/jhipster-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: jhipster.tech
+  group: k8s
+  kind: JHipsterSetup
+  path: github.com/hipster-labs/jhipster-operator/api/v1alpha1
+  version: v1alpha1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: jhipster.tech
+  group: k8s
+  kind: JHipsterApplication
+  path: github.com/hipster-labs/jhipster-operator/api/v1alpha1
+  version: v1alpha1
+version: "3"
