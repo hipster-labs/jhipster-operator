@@ -44,7 +44,6 @@ type JHipsterSetupReconciler struct {
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
 // the JHipsterSetup object against the actual cluster state, and then
 // perform operations to make the cluster state reflect the state specified by
 // the user.
@@ -81,14 +80,18 @@ func (r *JHipsterSetupReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.StatefulSet{}).
 		Owns(&v1.Secret{}).
 		Owns(&v1.Service{}).
+		Owns(&v1.ConfigMap{}).
 		Complete(r)
 }
 
 func (r *JHipsterSetupReconciler) ensureConsulResources(ctx context.Context, setup *k8sv1alpha1.JHipsterSetup) (ctrl.Result, error) {
 	// ensure the gossipKey
 	gossipKey := &v1.Secret{}
-	gossipKeyTpl := pkg.ConsulSecret(setup.Name, setup.Namespace)
-	err := r.Get(ctx, types.NamespacedName{
+	gossipKeyTpl, err := pkg.ConsulSecret(setup.Name, setup.Namespace, pkg.RandSeq(20))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = r.Get(ctx, types.NamespacedName{
 		Namespace: gossipKeyTpl.Namespace,
 		Name:      gossipKeyTpl.Name,
 	}, gossipKey)
@@ -109,7 +112,10 @@ func (r *JHipsterSetupReconciler) ensureConsulResources(ctx context.Context, set
 	// todo, reconcile if user changed
 
 	consulService := &v1.Service{}
-	consulServiceTpl := pkg.ConsulService(setup.Name, setup.Namespace)
+	consulServiceTpl, err := pkg.ConsulService(setup.Name, setup.Namespace)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 
 	err = r.Get(ctx, types.NamespacedName{
 		Namespace: consulServiceTpl.Namespace,
@@ -133,9 +139,7 @@ func (r *JHipsterSetupReconciler) ensureConsulResources(ctx context.Context, set
 
 	// todo, reconcile if user changed
 	consulSts := &appsv1.StatefulSet{}
-	var size int32 = 3
-	storageSize := "700M"
-	consulStsTpl, err := pkg.ConsulSts(setup.Name, setup.Namespace, size, storageSize, setup.Spec.StorageClassName)
+	consulStsTpl, err := pkg.ConsulSts(setup.Name, setup.Namespace, setup.Spec.StorageClassName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -161,6 +165,58 @@ func (r *JHipsterSetupReconciler) ensureConsulResources(ctx context.Context, set
 	}
 
 	// todo, reconcile if user changed
+	consulConfigLoaderDeployment := &appsv1.Deployment{}
+	consulConfigLoaderDeploymentTpl, err := pkg.ConsulConfigLoader(setup.Name, setup.Namespace)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.Get(ctx, types.NamespacedName{
+		Namespace: consulConfigLoaderDeploymentTpl.Namespace,
+		Name:      consulConfigLoaderDeploymentTpl.Name,
+	}, consulConfigLoaderDeployment)
+
+	if err != nil {
+
+		if errors.IsNotFound(err) {
+			ctrl.SetControllerReference(setup, consulConfigLoaderDeploymentTpl, r.Scheme)
+			err = r.Create(ctx, consulConfigLoaderDeploymentTpl)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{Requeue: true}, nil
+		}
+
+		return ctrl.Result{}, err
+	}
+	applicationConfigMap := &v1.ConfigMap{}
+	applicationConfigMapTpl, err := pkg.ConsulApplicationConfig(setup.Name, setup.Namespace, pkg.RandSeq(64))
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	err = r.Get(ctx, types.NamespacedName{
+		Namespace: applicationConfigMapTpl.Namespace,
+		Name:      applicationConfigMapTpl.Name,
+	}, applicationConfigMap)
+
+	if err != nil {
+
+		if errors.IsNotFound(err) {
+			ctrl.SetControllerReference(setup, applicationConfigMapTpl, r.Scheme)
+			err = r.Create(ctx, applicationConfigMapTpl)
+
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+
+			return ctrl.Result{Requeue: true}, nil
+		}
+
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
