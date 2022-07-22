@@ -64,7 +64,7 @@ func (r *JHipsterSetupReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	logger.Info("reconciling", "setup", setup)
+	logger.Info("reconciling", "setup", setup.Name, "req", req)
 	if setup.Spec.ServiceDiscoveryType == k8sv1alpha1.Consul {
 		return r.ensureConsulResources(ctx, setup)
 	}
